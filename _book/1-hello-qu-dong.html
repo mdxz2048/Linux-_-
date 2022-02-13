@@ -1,0 +1,414 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>1-hello驱动 · GitBook</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.3">
+        
+        
+        
+    
+    <link rel="stylesheet" href="gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+        
+
+    
+
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    
+    <link rel="prev" href="zhun-bei-gong-zuo/linux-qu-dong-ji-chu-bi-ji.html" />
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="./">
+            
+                <a href="./">
+            
+                    
+                    准备工作
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.1.1" data-path="zhun-bei-gong-zuo/linux-qu-dong-ji-chu-bi-ji.html">
+            
+                <a href="zhun-bei-gong-zuo/linux-qu-dong-ji-chu-bi-ji.html">
+            
+                    
+                    Linux驱动基础笔记
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter active" data-level="1.2" data-path="1-hello-qu-dong.html">
+            
+                <a href="1-hello-qu-dong.html">
+            
+                    
+                    1-hello驱动
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            Published with GitBook
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href="." >1-hello驱动</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h1 id="&#x9A71;&#x52A8;&#x5F00;&#x53D1;&#x6B65;&#x9AA4;">&#x9A71;&#x52A8;&#x5F00;&#x53D1;&#x6B65;&#x9AA4;</h1>
+<ol>
+<li>&#x786E;&#x5B9A;&#x4E3B;&#x8BBE;&#x5907;&#x53F7;&#xFF1B;</li>
+<li>&#x5B9A;&#x4E49;&#x81EA;&#x5DF1;&#x7684;file_operations&#x7ED3;&#x6784;&#x4F53;&#xFF1B;</li>
+<li>&#x5B9E;&#x73B0;&#x5BF9;&#x5E94;&#x7684;open/read/write&#x7B49;&#x51FD;&#x6570;&#xFF0C;&#x586B;&#x5165;file_operations&#x7ED3;&#x6784;&#x4F53;&#xFF1B;</li>
+<li>&#x628A;file_operations&#x7ED3;&#x6784;&#x4F53;&#x544A;&#x8BC9;&#x5185;&#x6838;&#xFF0C;&#x6CE8;&#x518C;&#x9A71;&#x52A8;&#x7A0B;&#x5E8F;&#xFF1B;</li>
+<li>&#x5165;&#x53E3;&#x51FD;&#x6570;&#xFF1A;&#x5B89;&#x88C5;&#x9A71;&#x52A8;&#x65F6;&#xFF0C;&#x5C31;&#x4F1A;&#x53BB;&#x8C03;&#x7528;&#x5165;&#x53E3;&#x51FD;&#x6570;&#xFF1B;</li>
+<li>&#x51FA;&#x53E3;&#x51FD;&#x6570;&#xFF1A;&#x5378;&#x8F7D;&#x9A71;&#x52A8;&#x65F6;&#xFF0C;&#x5C31;&#x4F1A;&#x53BB;&#x8C03;&#x7528;&#x51FA;&#x53E3;&#x51FD;&#x6570;&#xFF1B;</li>
+<li>&#x5176;&#x4ED6;&#x5B8C;&#x5584;&#xFF0C;&#x63D0;&#x4F9B;&#x8BBE;&#x5907;&#x4FE1;&#x606F;&#xFF0C;&#x81EA;&#x52A8;&#x521B;&#x5EFA;&#x8BBE;&#x5907;&#x8282;&#x70B9;&#x3002;</li>
+</ol>
+<h1 id="&#x7F16;&#x5199;&#x9A71;&#x52A8;-hellodrvc">&#x7F16;&#x5199;&#x9A71;&#x52A8;-hello_drv.c</h1>
+<ol>
+<li><p>&#x786E;&#x5B9A;&#x4E3B;&#x8BBE;&#x5907;&#x53F7;</p>
+<pre><code class="lang-c"> <span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> major = <span class="hljs-number">0</span>;
+</code></pre>
+</li>
+<li><p>&#x5B9A;&#x4E49;&#x81EA;&#x5DF1;&#x7684;file_operations&#x7ED3;&#x6784;&#x4F53;&#xFF1B;</p>
+<pre><code class="lang-c"> <span class="hljs-keyword">static</span> <span class="hljs-keyword">struct</span> file_operations hello_drv = {
+     .owner     = THIS_MODULE,
+     .open    = hello_drv_open,
+     .read    = hello_drv_read,
+     .write   = hello_drv_write,
+     .release = hello_drv_close,
+ };
+</code></pre>
+</li>
+</ol>
+<ol>
+<li><p>&#x5B9E;&#x73B0;&#x5BF9;&#x5E94;&#x7684;open/read/write&#x7B49;&#x51FD;&#x6570;&#xFF0C;&#x586B;&#x5165;file_operations&#x7ED3;&#x6784;&#x4F53;&#xFF1B;</p>
+<pre><code class="lang-c"> <span class="hljs-function"><span class="hljs-keyword">static</span> ssize_t <span class="hljs-title">hello_drv_read</span> <span class="hljs-params">(<span class="hljs-keyword">struct</span> file *file, <span class="hljs-keyword">char</span> __user *buf, size_t size, loff_t *offset)</span>
+ </span>{
+     <span class="hljs-keyword">int</span> err;
+     printk(<span class="hljs-string">&quot;%s %s line %d\n&quot;</span>, __FILE__, __FUNCTION__, __LINE__);
+     err = copy_to_user(buf, kernel_buf, MIN(<span class="hljs-number">1024</span>, size));
+     <span class="hljs-keyword">return</span> MIN(<span class="hljs-number">1024</span>, size);
+ }
+
+ <span class="hljs-function"><span class="hljs-keyword">static</span> ssize_t <span class="hljs-title">hello_drv_write</span> <span class="hljs-params">(<span class="hljs-keyword">struct</span> file *file, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> __user *buf, size_t size, loff_t *offset)</span>
+ </span>{
+     <span class="hljs-keyword">int</span> err;
+     printk(<span class="hljs-string">&quot;%s %s line %d\n&quot;</span>, __FILE__, __FUNCTION__, __LINE__);
+     err = copy_from_user(kernel_buf, buf, MIN(<span class="hljs-number">1024</span>, size));
+     <span class="hljs-keyword">return</span> MIN(<span class="hljs-number">1024</span>, size);
+ }
+
+ <span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> <span class="hljs-title">hello_drv_open</span> <span class="hljs-params">(<span class="hljs-keyword">struct</span> inode *node, <span class="hljs-keyword">struct</span> file *file)</span>
+ </span>{
+     printk(<span class="hljs-string">&quot;%s %s line %d\n&quot;</span>, __FILE__, __FUNCTION__, __LINE__);
+     <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+ }
+
+ <span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> <span class="hljs-title">hello_drv_close</span> <span class="hljs-params">(<span class="hljs-keyword">struct</span> inode *node, <span class="hljs-keyword">struct</span> file *file)</span>
+ </span>{
+     printk(<span class="hljs-string">&quot;%s %s line %d\n&quot;</span>, __FILE__, __FUNCTION__, __LINE__);
+     <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+ }
+</code></pre>
+</li>
+</ol>
+<ol>
+<li><p>&#x628A;file_operations&#x7ED3;&#x6784;&#x4F53;&#x544A;&#x8BC9;&#x5185;&#x6838;&#xFF0C;&#x6CE8;&#x518C;&#x9A71;&#x52A8;&#x7A0B;&#x5E8F;&#xFF1B;</p>
+</li>
+<li><p>&#x5165;&#x53E3;&#x51FD;&#x6570;&#xFF1A;&#x5B89;&#x88C5;&#x9A71;&#x52A8;&#x65F6;&#xFF0C;&#x5C31;&#x4F1A;&#x53BB;&#x8C03;&#x7528;&#x5165;&#x53E3;&#x51FD;&#x6570;&#xFF1B;</p>
+<p> ```c
+ static int __init hello_init(void)
+ {</p>
+<pre><code> int err;
+
+ printk(&quot;%s %s line %d\n&quot;, __FILE__, __FUNCTION__, __LINE__);
+ major = register_chrdev(0, &quot;hello&quot;, &amp;hello_drv);  /* /dev/hello */
+</code></pre></li>
+</ol>
+<pre><code>    hello_class = class_create(THIS_MODULE, &quot;hello_class&quot;);
+    err = PTR_ERR(hello_class);
+    if (IS_ERR(hello_class)) {
+        printk(&quot;%s %s line %d\n&quot;, __FILE__, __FUNCTION__, __LINE__);
+        unregister_chrdev(major, &quot;hello&quot;);
+        return -1;
+    }
+
+    device_create(hello_class, NULL, MKDEV(major, 0), NULL, &quot;hello&quot;); /* /dev/hello */
+
+    return 0;
+}
+```
+</code></pre><ol>
+<li><p>&#x51FA;&#x53E3;&#x51FD;&#x6570;&#xFF1A;&#x5378;&#x8F7D;&#x9A71;&#x52A8;&#x65F6;&#xFF0C;&#x5C31;&#x4F1A;&#x53BB;&#x8C03;&#x7528;&#x51FA;&#x53E3;&#x51FD;&#x6570;&#xFF1B;</p>
+<pre><code class="lang-c"> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> __<span class="hljs-function"><span class="hljs-built_in">exit</span> <span class="hljs-title">hello_exit</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+ </span>{
+     printk(<span class="hljs-string">&quot;%s %s line %d\n&quot;</span>, __FILE__, __FUNCTION__, __LINE__);
+     device_destroy(hello_class, MKDEV(major, <span class="hljs-number">0</span>));
+     class_destroy(hello_class);
+     unregister_chrdev(major, <span class="hljs-string">&quot;hello&quot;</span>);
+ }
+</code></pre>
+</li>
+</ol>
+<ol>
+<li><p>&#x5176;&#x4ED6;&#x5B8C;&#x5584;&#xFF0C;&#x63D0;&#x4F9B;&#x8BBE;&#x5907;&#x4FE1;&#x606F;&#xFF0C;&#x81EA;&#x52A8;&#x521B;&#x5EFA;&#x8BBE;&#x5907;&#x8282;&#x70B9;&#x3002;</p>
+<pre><code class="lang-c"> module_exit(hello_exit);
+
+ MODULE_LICENSE(<span class="hljs-string">&quot;GPL&quot;</span>);
+</code></pre>
+</li>
+</ol>
+<h1 id="&#x7F16;&#x5199;&#x6D4B;&#x8BD5;&#x7A0B;&#x5E8F;-hellodrvtestc">&#x7F16;&#x5199;&#x6D4B;&#x8BD5;&#x7A0B;&#x5E8F;-hello_drv_test.c</h1>
+<p>&#x6D4B;&#x8BD5;&#x7A0B;&#x5E8F;&#x7528;&#x6765;&#x6D4B;&#x8BD5;&#x9A71;&#x52A8;&#x662F;&#x5426;&#x53EF;&#x4EE5;&#x6B63;&#x5E38;&#x5DE5;&#x4F5C;&#x3002;</p>
+<ol>
+<li><p>&#x5224;&#x65AD;&#x53C2;&#x6570;&#xFF1B;</p>
+<pre><code class="lang-c">     <span class="hljs-keyword">if</span> (argc &lt; <span class="hljs-number">2</span>) 
+     {
+         <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;Usage: %s -w &lt;string&gt;\n&quot;</span>, argv[<span class="hljs-number">0</span>]);
+         <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;       %s -r\n&quot;</span>, argv[<span class="hljs-number">0</span>]);
+         <span class="hljs-keyword">return</span> <span class="hljs-number">-1</span>;
+     }
+</code></pre>
+</li>
+</ol>
+<ol>
+<li><p>&#x6253;&#x5F00;&#x8BBE;&#x5907;&#xFF1B;</p>
+<pre><code class="lang-c">     fd = open(<span class="hljs-string">&quot;/dev/hello&quot;</span>, O_RDWR);
+     <span class="hljs-keyword">if</span> (fd == <span class="hljs-number">-1</span>)
+     {
+         <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;can not open file /dev/hello\n&quot;</span>);
+         <span class="hljs-keyword">return</span> <span class="hljs-number">-1</span>;
+     }
+</code></pre>
+</li>
+</ol>
+<ol>
+<li><p>&#x64CD;&#x4F5C;&#x8BBE;&#x5907;&#xFF1B;</p>
+<p> ```c</p>
+<pre><code> if ((0 == strcmp(argv[1], &quot;-w&quot;)) &amp;&amp; (argc == 3))
+ {
+     len = strlen(argv[2]) + 1;
+     len = len &lt; 1024 ? len : 1024;
+     write(fd, argv[2], len);
+ }
+ else
+ {
+     len = read(fd, buf, 1024);        
+     buf[1023] = &apos;\0&apos;;
+     printf(&quot;APP read : %s\n&quot;, buf);
+ }
+</code></pre></li>
+</ol>
+<pre><code>```
+</code></pre><ol>
+<li><p>&#x5173;&#x95ED;&#x8BBE;&#x5907;</p>
+<pre><code>     close(fd);
+</code></pre></li>
+</ol>
+<ol>
+<li>&#x5176;&#x4ED6;</li>
+</ol>
+
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                <a href="zhun-bei-gong-zuo/linux-qu-dong-ji-chu-bi-ji.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page: Linux驱动基础笔记">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"1-hello驱动","level":"1.2","depth":1,"previous":{"title":"Linux驱动基础笔记","level":"1.1.1","depth":2,"path":"zhun-bei-gong-zuo/linux-qu-dong-ji-chu-bi-ji.md","ref":"zhun-bei-gong-zuo/linux-qu-dong-ji-chu-bi-ji.md","articles":[]},"dir":"ltr"},"config":{"gitbook":"*","theme":"default","variables":{},"plugins":["livereload"],"pluginsConfig":{"livereload":{},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"fontsettings":{"theme":"white","family":"sans","size":2},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"}},"file":{"path":"1-hello-qu-dong.md","mtime":"2022-02-13T08:26:30.038Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2022-02-13T08:56:13.261Z"},"basePath":".","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="gitbook/gitbook.js"></script>
+    <script src="gitbook/theme.js"></script>
+    
+        
+        <script src="gitbook/gitbook-plugin-livereload/plugin.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+
+    </body>
+</html>
+
