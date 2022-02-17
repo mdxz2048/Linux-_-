@@ -46,6 +46,67 @@ GPIO的时钟源如下。
 | ---------- | ------------ | ----------------------- |
 | ipg_clk_s  | ipg_clk_root | Peripheral access clock |
 
+### GPIO编程
 
+#### 读模式
+
+1. 配置IOMUX寄存器选择引脚位GPIO模式(通过IOMUX可以控制(IOMUXC)寄存器)；
+
+2. 配置GPIO方向寄存器((GPIO_GDIR[GDIR])对应位设置为0，配置方向为input；
+
+3. 从数据寄存器(GPIO_DR)或者PAD状态寄存器(GPIO_PSR)读取输入信号；
+
+   注：
+
+   - 当GPIO_GDIR = 0,即方向设置为input时，读取GPIO_DR寄存器返回的是GPIO_PSR寄存器对应位的值，即输入信号。
+
+#### 写模式
+
+1. 配置IOMUX寄存器选择引脚位GPIO模式(通过IOMUX可以控制(IOMUXC)寄存器)。如果需要通过PSR寄存器确认写入的值，则需要使能SION；
+2. 配置GPIO_GDIR寄存器对应位为1b，设置为输出模式；
+3. 写数据到GPIO_DR寄存器；
+
+#### 中断控制单元
+
+中断检测单元是通过读取GDIR寄存器的值，来检测在配置的GPIO外设对应引脚上，支持上升沿触犯、下降沿触发、高电平触发和低电平触发。
+
+GPIO_ICR1和GPIO_ICR2作为中断控制寄存器来对GPIO的中断控制功能进行配置。
+
+### GPIO寄存器
+
+#### 内存地址定义
+
+参考数据手册《28.5 GPIO Memory Map/Register Definition》内容。
+
+![image.png](https://ae03.alicdn.com/kf/H50218755d1294ffdb54dbe7d0aba119eY.png)
+
+![image.png](https://ae02.alicdn.com/kf/H4742809c1b8c48fd8ae19b6c942980e4Q.png)
+
+#### 寄存器描述
+
+##### GPIO data register (GPIOx_DR)
+
+- GPIO_DR数据寄存器是用来临时保存数据。如果IOMUXC寄存器处于GPIO模式，且GPIO的方向被设置，GPIO_DR寄存器的数据会输出到对应位。
+
+- 如果GPIO的方向位被清空，再读取GPIO_DR寄存器将反应对应位的信号；
+
+- 两个读取动作之间需要等待两个周期。
+
+  ![image.png](https://ae05.alicdn.com/kf/H7d15da13e76b4163ac793dc58cda66eeN.png)
+
+GPIO_DR位的读取与IOMUXC 输入模式和GDIR位的设置如下：
+
+- GDIR[n]被设置，IOMUXC处于GPIO模式，读取 DR[n]返回当前的 DR[n]；
+- GDIR[n] 被清零，IOMUXC处于GPIO模式，读取 DR[n]返回对应位的输入信号的值；
+- GDIR[n]被设置，IOMUXC没有处于GPIO模式，读取 DR[n]返回当前的 DR[n]；
+- GDIR[n] 被清零，IOMUXC没有处于GPIO模式，读取DR[n]总是返回0；
+
+##### GPIO direction register (GPIOx_GDIR)
+
+- 当IOMUXC被设置位GPIO模式时，GPIO_GDIR功能是方向控制器；
+- GPIO_GDIR每个位为对应引脚指定一个方向；
+- 每个控制信号对应SoC上的对应引脚，由SoC和IOMUX对应位来决定实际的方向(是否有效)；
+
+![image.png](https://ae02.alicdn.com/kf/H998f832cb7b9490fb15afaef34f4dbcax.png)
 
 ## 开发板原理图
