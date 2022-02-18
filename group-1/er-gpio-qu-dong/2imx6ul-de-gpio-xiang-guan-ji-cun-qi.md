@@ -84,7 +84,9 @@ GPIO_ICR1和GPIO_ICR2作为中断控制寄存器来对GPIO的中断控制功能�
 
 #### 寄存器描述
 
-##### GPIO data register (GPIOx_DR)
+##### GPIOx_DR
+
+- GPIOx_DR全称是GPIO data register ；
 
 - GPIO_DR数据寄存器是用来临时保存数据。如果IOMUXC寄存器处于GPIO模式，且GPIO的方向被设置，GPIO_DR寄存器的数据会输出到对应位。
 
@@ -92,7 +94,8 @@ GPIO_ICR1和GPIO_ICR2作为中断控制寄存器来对GPIO的中断控制功能�
 
 - 两个读取动作之间需要等待两个周期。
 
-  ![image.png](https://ae05.alicdn.com/kf/H7d15da13e76b4163ac793dc58cda66eeN.png)
+
+![image.png](https://ae05.alicdn.com/kf/H7d15da13e76b4163ac793dc58cda66eeN.png)
 
 GPIO_DR位的读取与IOMUXC 输入模式和GDIR位的设置如下：
 
@@ -101,7 +104,9 @@ GPIO_DR位的读取与IOMUXC 输入模式和GDIR位的设置如下：
 - GDIR[n]被设置，IOMUXC没有处于GPIO模式，读取 DR[n]返回当前的 DR[n]；
 - GDIR[n] 被清零，IOMUXC没有处于GPIO模式，读取DR[n]总是返回0；
 
-##### GPIO direction register (GPIOx_GDIR)
+##### GPIOx_GDIR
+
+- GPIOx_GDIR全称是GPIO direction register ；
 
 - 当IOMUXC被设置位GPIO模式时，GPIO_GDIR功能是方向控制器；
 - GPIO_GDIR每个位为对应引脚指定一个方向；
@@ -109,4 +114,33 @@ GPIO_DR位的读取与IOMUXC 输入模式和GDIR位的设置如下：
 
 ![image.png](https://ae02.alicdn.com/kf/H998f832cb7b9490fb15afaef34f4dbcax.png)
 
+##### GPIOx_PSR
+
+- GPIOx_PSR寄存器全称为GPIO pad status register 
+- GPIOx_PSR寄存器是一个只读寄存器；
+- 当IOMUX被配置时，每个位用来存储对应的输入信号；
+- 该寄存器由 ipg_clk_s 时钟提供时钟，这意味着只有时钟源有效时才可以对输入信号进行采样；
+- 访问寄存器时需要间隔两个时钟周期；
+
+![](https://raw.githubusercontent.com/mdxz2048/mddxz_top_img/main/20220218190623.png)
+
+##### GPIOx_ICR1 、GPIOx_ICR2
+
+- GPIOx_ICR全称是GPIO interrupt configuration register；
+
+- GPIOx_ICR1包括16个由2个bit组成的区域，每个区域用来控制对应1个GPIO中断的触发方式,每个GPIO支持4种触发方式，分别是低电平触发、高电平触发、上升沿触发和下降沿触发；
+- GPIOx_ICR1和GPIOx_ICR2一共可以配置最多32个中断的触发方式；
+
+![image-20220218191639540](https://raw.githubusercontent.com/mdxz2048/mddxz_top_img/main/image-20220218191639540.png)
+
+##### GPIOx_IMR
+
+- GPIOx_IMR全称是GPIO interrupt mask register，即中断屏蔽寄存器；
+- GPIO_IMR寄存器每个位对应一个中断源的屏蔽；
+
+![image-20220218192812409](https://raw.githubusercontent.com/mdxz2048/mddxz_top_img/main/image-20220218192812409.png)
+
+##### GPIOx_ISR
+
 ## 开发板原理图
+
