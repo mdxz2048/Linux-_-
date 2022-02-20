@@ -142,5 +142,13 @@ GPIO_DR位的读取与IOMUXC 输入模式和GDIR位的设置如下：
 
 ##### GPIOx_ISR
 
+- GPIOx_ISR全称是GPIO interrupt status register，即中断状态寄存器；
+- GPIOx_ISR用来指示GPIO中断的状态；
+- 每个位表示相应的输入信号的中断条件满足(即触发中断，是否触发由相应的中断条件判断的寄存器来判断)，当对应位中断被触发时，GPIOx_ISR对应位置1；
+- 读取需要等待2个等待周期；
+- 复位需要等待1个等待周期；
+
+![image-20220220122038905](https://raw.githubusercontent.com/mdxz2048/mddxz_top_img/main/image-20220220122038905.png)
+
 ## 开发板原理图
 
