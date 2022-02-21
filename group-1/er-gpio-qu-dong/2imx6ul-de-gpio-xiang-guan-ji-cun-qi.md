@@ -150,5 +150,14 @@ GPIO_DR位的读取与IOMUXC 输入模式和GDIR位的设置如下：
 
 ![image-20220220122038905](https://raw.githubusercontent.com/mdxz2048/mddxz_top_img/main/image-20220220122038905.png)
 
+##### GPIOx_EDGE_SEL
+
+- GPIOx_EDGE_SEL全称是GPIO edge select register，即GPIO边缘选择寄存器，用来选择GPIO功能引脚的触发方式(如上升沿触发)；
+- GPIOx_EDGE_SEL寄存器可以覆盖ICR寄存器的配置；
+- GPIO_EDGE_SEL对应的位被置位，对应位的上升沿/下降沿将触发一个中断；
+- 这个寄存器提供向后兼容性,reset时所有的位会被清0((ICR寄存器不会被覆盖到)；
+
+![image-20220221203919979](https://raw.githubusercontent.com/mdxz2048/mddxz_top_img/main/image-20220221203919979.png)
+
 ## 开发板原理图
 
