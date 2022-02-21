@@ -51,9 +51,7 @@ GPIO的时钟源如下。
 #### 读模式
 
 1. 配置IOMUX寄存器选择引脚位GPIO模式(通过IOMUX可以控制(IOMUXC)寄存器)；
-
 2. 配置GPIO方向寄存器((GPIO_GDIR[GDIR])对应位设置为0，配置方向为input；
-
 3. 从数据寄存器(GPIO_DR)或者PAD状态寄存器(GPIO_PSR)读取输入信号；
 
    注：
@@ -87,13 +85,9 @@ GPIO_ICR1和GPIO_ICR2作为中断控制寄存器来对GPIO的中断控制功能�
 ##### GPIOx_DR
 
 - GPIOx_DR全称是GPIO data register ；
-
 - GPIO_DR数据寄存器是用来临时保存数据。如果IOMUXC寄存器处于GPIO模式，且GPIO的方向被设置，GPIO_DR寄存器的数据会输出到对应位。
-
 - 如果GPIO的方向位被清空，再读取GPIO_DR寄存器将反应对应位的信号；
-
 - 两个读取动作之间需要等待两个周期。
-
 
 ![image.png](https://ae05.alicdn.com/kf/H7d15da13e76b4163ac793dc58cda66eeN.png)
 
@@ -107,7 +101,6 @@ GPIO_DR位的读取与IOMUXC 输入模式和GDIR位的设置如下：
 ##### GPIOx_GDIR
 
 - GPIOx_GDIR全称是GPIO direction register ；
-
 - 当IOMUXC被设置位GPIO模式时，GPIO_GDIR功能是方向控制器；
 - GPIO_GDIR每个位为对应引脚指定一个方向；
 - 每个控制信号对应SoC上的对应引脚，由SoC和IOMUX对应位来决定实际的方向(是否有效)；
@@ -116,7 +109,7 @@ GPIO_DR位的读取与IOMUXC 输入模式和GDIR位的设置如下：
 
 ##### GPIOx_PSR
 
-- GPIOx_PSR寄存器全称为GPIO pad status register 
+- GPIOx_PSR寄存器全称为GPIO pad status register
 - GPIOx_PSR寄存器是一个只读寄存器；
 - 当IOMUX被配置时，每个位用来存储对应的输入信号；
 - 该寄存器由 ipg_clk_s 时钟提供时钟，这意味着只有时钟源有效时才可以对输入信号进行采样；
@@ -127,7 +120,6 @@ GPIO_DR位的读取与IOMUXC 输入模式和GDIR位的设置如下：
 ##### GPIOx_ICR1 、GPIOx_ICR2
 
 - GPIOx_ICR全称是GPIO interrupt configuration register；
-
 - GPIOx_ICR1包括16个由2个bit组成的区域，每个区域用来控制对应1个GPIO中断的触发方式,每个GPIO支持4种触发方式，分别是低电平触发、高电平触发、上升沿触发和下降沿触发；
 - GPIOx_ICR1和GPIOx_ICR2一共可以配置最多32个中断的触发方式；
 
@@ -160,4 +152,3 @@ GPIO_DR位的读取与IOMUXC 输入模式和GDIR位的设置如下：
 ![image-20220221203919979](https://raw.githubusercontent.com/mdxz2048/mddxz_top_img/main/image-20220221203919979.png)
 
 ## 开发板原理图
-
