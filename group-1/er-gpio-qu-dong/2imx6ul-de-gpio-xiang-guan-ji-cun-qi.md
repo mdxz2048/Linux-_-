@@ -152,3 +152,20 @@ GPIO_DR位的读取与IOMUXC 输入模式和GDIR位的设置如下：
 ![image-20220221203919979](https://raw.githubusercontent.com/mdxz2048/mddxz_top_img/main/image-20220221203919979.png)
 
 ## 开发板原理图
+
+上边，我们介绍了GPIO的功能和相关设置寄存器。接下来，以韦东山的100ask_imx6ull_PRO开发板为例，介绍如何通过GPIO来控制板子上的led灯；
+
+### LED原理图
+
+开发板原理图在这里[下载](http://download.100ask.org/boards/Nxp/100ask_imx6ull_pro/index.html)。
+
+![image-20220221204916520](https://raw.githubusercontent.com/mdxz2048/mddxz_top_img/main/image-20220221204916520.png)
+
+根据原理图，我们得到如下信息:
+
+1. LED2与引脚**GPIO5_3**连接；
+2. 当引脚**GPIO5_3**为低电平(0)时，LED2亮；
+3. 当引脚**GPIO5_3**为高电平(1)时，LED2熄灭；
+
+因此，我们在接下来章节，将编写一个简单的led驱动，通过配置相关寄存器，控制引脚GPIO5_3输出的高、低来实现控制led的亮、熄灭；
+
