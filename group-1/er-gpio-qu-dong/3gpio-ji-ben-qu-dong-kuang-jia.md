@@ -81,3 +81,142 @@ GPIO寄存器的详细描述见《28.5 GPIO Memory Map/Register Definition》的
 
 
 ## 编写LED驱动框架
+
+驱动框架及测试代码，请点击[这里](https://github.com/mdxz2048/Linux-driver-development-basics-code/tree/main/2_GPIO)查看。
+
+我们这里的驱动框架是一个精简版本，只是先了LED的打开功能，主要演示LED的基本操作，更完整的版本后续~~补充。~~
+
+### 代码解释
+
+#### [led_drv.c](https://github.com/mdxz2048/Linux-driver-development-basics-code/blob/main/2_GPIO/led_drv.c)
+
+1. 确定主设备号；
+
+   ```c
+   /*1. 确定主设备号；*/
+   static int led_major; /* default to dynamic major */
+   static struct class *led_class;
+   ```
+
+   
+
+2. 定义`file_operations`结构体；
+
+   ```c
+   /*2. 定义自己的file_operations结构体；*/
+   /*
+    * file operations
+    */
+   static const struct file_operations led_ops = {
+   	.owner = THIS_MODULE,
+   	.open = led_open,
+   	.write = led_write,
+   };
+   ```
+
+   
+
+3. 实现对应的`open/read/write`等函数，填入`file_operations`结构体。我们这里只实现了open和write功能；
+
+   ```c
+   static int led_open(struct inode *inode, struct file *filp)
+   {
+   	printk("%s %s %d\n", __FILE__, __FUNCTION__, __LINE__);
+   	/*CONFIG GPIO */
+   	*SW_MUX_CTL_PAD_SNVS_TAMPER3 &= ~0xf; // clear
+   	*SW_MUX_CTL_PAD_SNVS_TAMPER3 |= 0x5;  // set
+   
+   	/*CONFIG GPIO OUTPUT*/
+   	*GPIO5_GDIR |= (1 << 3);
+   	return 0;
+   }
+   
+   static int led_write(struct file *filp, const char __user *buf, size_t count, loff_t *ppos)
+   {
+   	char value = 0;
+   	int ret = -1;
+   	printk("%s %s %d\n", __FILE__, __FUNCTION__, __LINE__);
+   
+   	ret = copy_from_user(&value, buf, 1);
+   	if (value == 0)
+   	{
+   		// set GPIO to LED OFF
+   		*GPIO5_DR |= (1 << 3); // set 3 bit
+   	}
+   	else
+   	{
+   		// set GPIO to LED ON
+   		*GPIO5_DR &= ~(1 << 3); // clear 3 bit
+   	}
+   	return 0;
+   }
+   ```
+
+   
+
+4. 入口函数：安装驱动时，就会去调用入口函数；
+
+   ```c
+   static int __init led_init(void)
+   {
+   	int i = 0;
+   	printk("%s %s %d\n", __FILE__, __FUNCTION__, __LINE__);
+   	/*ioremap*/
+   	SW_MUX_CTL_PAD_SNVS_TAMPER3 = ioremap(0x2290014, 4);
+   	GPIO5_GDIR = ioremap(0x20AC004, 4);
+   	GPIO5_DR = ioremap(0x20AC000, 4);
+   	/*class_create*/
+   	led_class = class_create(THIS_MODULE, "mdxz_led");
+   	if (IS_ERR(led_class))
+   		return PTR_ERR(led_class);
+   	led_major = register_chrdev(0, DEVNAME, &led_ops);
+   	if (led_major < 0)
+   	{
+   		printk(DEVNAME
+   			   ": could not get major number\n");
+   		class_destroy(led_class);
+   		return led_major;
+   	}
+   
+   	device_create(led_class, NULL, MKDEV(led_major, 0), NULL, "mdxz_led%d", i);
+   
+   	return 0;
+   }
+   ```
+
+   
+
+5. 出口函数：卸载驱动时，就会去调用出口函数；
+
+   ```c
+   static void __exit led_exit(void)
+   {
+   	iounmap(SW_MUX_CTL_PAD_SNVS_TAMPER3);
+   	iounmap(GPIO5_GDIR);
+   	iounmap(GPIO5_DR);
+   	unregister_chrdev(led_major, DEVNAME);
+   	class_destroy(led_class);
+   	device_destroy(led_class, MKDEV(led_major, 0));
+   }
+   ```
+
+   
+
+6. 注册入口函数
+
+   ```
+   module_init(led_init);
+   module_exit(led_exit);
+   MODULE_LICENSE("GPL");
+   ```
+
+### 实验测试
+
+#### 编译过程
+
+#### 实验过程
+
+### 补充内容
+
+1. 我们这里的示例代码中，使用了模块动态加载的方法方便测试，内核模块还可以通过静态加载的方式编译进内核，关于两者的区别可以参考这篇博客[《Linux内核模块分析（module_init宏》](https://blog.csdn.net/lu_embedded/article/details/51432616)；
+
