@@ -82,7 +82,7 @@ GPIO寄存器的详细描述见《28.5 GPIO Memory Map/Register Definition》的
 
 ## 编写LED驱动框架
 
-驱动框架及测试代码，请点击[这里](https://github.com/mdxz2048/Linux-driver-development-basics-code/tree/main/2_GPIO)查看。
+驱动框架及测试代码，请点击[这里](https://github.com/mdxz2048/Linux-driver-development-basics-code/blob/main/1_HelloDrv/hello_drv.c)查看。
 
 我们这里的驱动框架是一个精简版本，只是先了LED的打开功能，主要演示LED的基本操作，更完整的版本后续~~补充。~~
 
