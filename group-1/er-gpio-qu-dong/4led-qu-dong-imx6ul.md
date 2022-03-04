@@ -38,11 +38,12 @@
 新建一个`led_operations`格式对象，将单板支持的LED具体操作抽象到这个对象中，在后边的硬件无关的驱动程序中，只要获取这个`led_operations`对象就可以操作具体的单板led。
 
 ```c
-typedef struct led_operations {
-	int (*init) (int which); /* 初始化LED, which-哪个LED */       
-	int (*ctl) (int which, char status); /* 控制LED, which-哪个LED, status:1-亮,0-灭 */
-	int (*exit) (int which);
-}led_operations_t;
+typedef struct
+{
+	int (*init)(void);		/* 初始化LED, which-哪个LED */
+	int (*ctl)(int status); /* 控制LED, which-哪个LED, status:1-亮,0-灭 */
+	int (*exit)(void);
+} led_operations_t;
 ```
 
 ##### 初始化
@@ -50,9 +51,9 @@ typedef struct led_operations {
 led_opr_init函数主要是初始化GPIO的状态，映射相关资源；
 
 ```c
-static int led_opr_init(int which)
+static int led_opr_init(void)
 {
-    printk("%s %s line %d, led %d\n", __FILE__, __FUNCTION__, __LINE__, which);
+    printk("%s %s line %d, \n", __FILE__, __FUNCTION__, __LINE__);
     // operations code
     /*IOREMAP*/
     if (!CCM_CCGR1)
@@ -63,10 +64,10 @@ static int led_opr_init(int which)
         GPIO5_DR                    = ioremap(0x20AC000, 4);
     }
     /*CONFIG GPIO */
-    *SW_MUX_CTL_PAD_SNVS_TAMPER3 &= ~0xf;  // clear
-    *SW_MUX_CTL_PAD_SNVS_TAMPER3 |= 0x5;   // set
+    *SW_MUX_CTL_PAD_SNVS_TAMPER3 & = ~0xf;  // clear
+    *SW_MUX_CTL_PAD_SNVS_TAMPER3 | = 0x5;   // set
     /*CONFIG GPIO OUTPUT*/
-    *GPIO5_GDIR |= (1 << 3);
+    *GPIO5_GDIR | = (1 << 3);
 
     return 0;
 }
@@ -75,9 +76,9 @@ static int led_opr_init(int which)
 ##### exit程序释放资源
 
 ```c
-static int led_opr_exit(int which)
+static int led_opr_exit(void)
 {
-    printk("%s %s line %d, led %d\n", __FILE__, __FUNCTION__, __LINE__, which);
+    printk("%s %s line %d\n", __FILE__, __FUNCTION__, __LINE__);
     // operations code
     /*IOUNMAP*/
     iounmap(CCM_CCGR1);
@@ -94,19 +95,19 @@ static int led_opr_exit(int which)
 led_opr_ctl函数是实现控制GPIO的输出的高、低，以实现具体led的亮灭。
 
 ```c
-static int led_opr_ctl(int which, int status)
+static int led_opr_ctl(int status)
 {
-    printk("%s %s line %d, led %d, %s\n", __FILE__, __FUNCTION__, __LINE__, which, status ? "on" : "off");
+    printk("%s %s line %d, %s\n", __FILE__, __FUNCTION__, __LINE__, status ? "on" : "off");
     // operations code
     if (status == 0)
     {
         // set GPIO to LED OFF
-        *GPIO5_DR |= (1 << 3); // set 3 bit
+        *GPIO5_DR | = (1 << 3);  // set 3 bit
     }
     else
     {
         // set GPIO to LED ON
-        *GPIO5_DR &= ~(1 << 3); // clear 3 bit
+        *GPIO5_DR & = ~(1 << 3);  // clear 3 bit
     }
 
     return 0;
@@ -118,9 +119,13 @@ static int led_opr_ctl(int which, int status)
 get_board_led_opr是被驱动调用的，用来获取led_opration的操作对象；
 
 ```c
-struct led_operations_t *get_board_led_opr(void)
+led_operations_t *get_board_led_opr(void)
 {
-    return &100_ask_led_opr;
+    led_opr_100ask.init = led_opr_init;
+    led_opr_100ask.ctl  = led_opr_ctl;
+    led_opr_100ask.exit = led_opr_exit;
+
+    return &led_opr_100ask;
 }
 ```
 
@@ -201,9 +206,7 @@ led_drv_open主要是调用单板的具体的初始化函数(`p_led_opr->init()`
 static int led_drv_open(struct inode *inode, struct file *filp)
 {
     printk("%s %s %d\n", __FILE__, __FUNCTION__, __LINE__);
-
-    int minor = iminor(node);
-    p_led_opr->init(minor);
+    p_led_opr->init();
 
     return 0;
 }
@@ -215,14 +218,12 @@ led_drv_write主要是将用户态的buf读进来，通过调用实际的单板�
 static int led_drv_write(struct file *filp, const char __user *buf, size_t count, loff_t *ppos)
 {
     char value = 0;
-    int ret = -1;
+    int  ret   = -1;
     printk("%s %s %d\n", __FILE__, __FUNCTION__, __LINE__);
 
     ret = copy_from_user(&value, buf, 1);
-    struct inode *inode = file_inode(file);
-    /*提取次设备号*/
-    int minor = iminor(inode);
-    p_led_opr->ctl(minor, value);
+
+    p_led_opr->ctl(value);
 
     return 0;
 }
@@ -244,14 +245,10 @@ static int led_drv_close(struct inode *node, struct file *file)
 
 ```c
 static const struct file_operations led_ops = {
-    .owner = THIS_MODULE,
-    .open = led_drv_open,
-    .write = led_drv_write,
+    .owner   = THIS_MODULE,
+    .open    = led_drv_open,
+    .write   = led_drv_write,
     .release = led_drv_close,
 };
 ```
-
-
-
-### 
 
