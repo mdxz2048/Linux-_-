@@ -13,3 +13,4 @@
   * [2-imx6ul的GPIO相关寄存器](group-1/er-gpio-qu-dong/2imx6ul-de-gpio-xiang-guan-ji-cun-qi.md)
   * [3-GPIO基本驱动框架](group-1/er-gpio-qu-dong/3gpio-ji-ben-qu-dong-kuang-jia.md)
   * [4-LED驱动(imx6ul)](group-1/er-gpio-qu-dong/4led-qu-dong-imx6ul.md)
+  * [5-Linux驱动的分层和分离](group-1/er-gpio-qu-dong/5linux-qu-dong-de-fen-ceng-he-fen-li.md)
