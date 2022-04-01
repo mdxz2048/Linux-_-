@@ -14,3 +14,4 @@
   * [3-GPIO基本驱动框架](ji-chu-pian/er-gpio-qu-dong/3gpio-ji-ben-qu-dong-kuang-jia.md)
   * [4-LED驱动(imx6ul)](ji-chu-pian/er-gpio-qu-dong/4led-qu-dong-imx6ul.md)
   * [5-Linux驱动的分层和分离](ji-chu-pian/er-gpio-qu-dong/5linux-qu-dong-de-fen-ceng-he-fen-li.md)
+  * [6-基于设备树的LED驱动实验](ji-chu-pian/er-gpio-qu-dong/6-ji-yu-she-bei-shu-de-led-qu-dong-shi-yan.md)
