@@ -17,3 +17,4 @@
   * [6-基于设备树的LED驱动实验](ji-chu-pian/er-gpio-qu-dong/6-ji-yu-she-bei-shu-de-led-qu-dong-shi-yan.md)
 * [三、按键驱动](ji-chu-pian/san-an-jian-qu-dong/README.md)
   * [1-signal](ji-chu-pian/san-an-jian-qu-dong/1-signal.md)
+  * [2-imx6ull按键模板实验](ji-chu-pian/san-an-jian-qu-dong/2imx6ull-an-jian-mo-ban-shi-yan.md)
