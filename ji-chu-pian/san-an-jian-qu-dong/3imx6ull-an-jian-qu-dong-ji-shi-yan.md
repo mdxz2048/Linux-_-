@@ -38,8 +38,8 @@ GPIO控制器相关资源和控制方法我们在GPIO驱动[第二节](https://g
 
     | GPIO  | 寄存器名称  | 寄存器地址 | 描述             |
     | ----- | ----------- | ---------- | ---------------- |
-    | GPIO4 | CCGR3[CG6]  |            | GPIO4_CLK_ENABLE |
-    | GPIO5 | CCGR1[CG15] |            | GPIO5_CLK_ENABLE |
+    | GPIO4 | CCGR3[CG6]  | 20C_4074   | GPIO4_CLK_ENABLE |
+    | GPIO5 | CCGR1[CG15] | 20C_406C   | GPIO5_CLK_ENABLE |
 
     
 
