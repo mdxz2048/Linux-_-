@@ -9,6 +9,50 @@
 
 ## 实验演示
 
+1. 在[这里](https://github.com/mdxz2048/Linux-driver-development-basics-code/tree/main/3_KEY/3_3_key_drv)下载代码，然后编译并将模块和测试程序复制到NFS文件夹;
+
+    ```sh
+    make -s
+    cp *.ko keytest ~/lzp/Embeded/NFS_DIR 
+    ```
+
+    
+
+2. 在开发板上挂载NFS目录，执行insmod安装模块;
+
+    ```sh
+    insmod key_drv.ko
+    insmod imx6ull_key_driver.ko
+    ```
+
+    
+
+3. 安装完成后，可以看到在/dev目录下有对应的设备;
+
+    ```shell
+    [root@imx6ull:/mnt]# ls /dev/mdxz_key*
+    /dev/mdxz_key0  /dev/mdxz_key1
+    ```
+
+    
+
+4. 在开发板上找到`Key1`，对应`/dev/mdxz_key0`，分别在抬起、按下时读取按键值
+
+    ```sh
+    [root@imx6ull:/mnt]# ./keytest /dev/mdxz_key0
+    get button : 1
+    [root@imx6ull:/mnt]# ./keytest /dev/mdxz_key0
+    get button : 0
+    [root@imx6ull:/mnt]# ./keytest /dev/mdxz_key1
+    get button : 1
+    [root@imx6ull:/mnt]# ./keytest /dev/mdxz_key1
+    get button : 0
+    ```
+
+    
+
+5. 至此，实验演示完成。
+
 ## 按键原理图
 
 1. 开发板的原理图按键部分如下，确定板子上按键对应的GPIO引脚,可以看到`KEY1`对应`GPIO5_1`、`KEY2`对应`GPIO4_14`引脚；
@@ -106,3 +150,4 @@ GPIO控制器相关资源和控制方法我们在GPIO驱动[第二节](https://g
 
 ## 驱动程序
 
+在[这里](https://github.com/mdxz2048/Linux-driver-development-basics-code/tree/main/3_KEY/3_3_key_drv)下载程序源文件。
