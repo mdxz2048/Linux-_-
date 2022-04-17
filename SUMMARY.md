@@ -20,4 +20,6 @@
   * [1-signal](ji-chu-pian/san-an-jian-qu-dong/1-signal.md)
   * [2-imx6ull按键模板实验](ji-chu-pian/san-an-jian-qu-dong/2imx6ull-an-jian-mo-ban-shi-yan.md)
   * [3-imx6ull按键驱动及实验](ji-chu-pian/san-an-jian-qu-dong/3imx6ull-an-jian-qu-dong-ji-shi-yan.md)
-* [四、GPIO子系统](ji-chu-pian/si-gpio-zi-xi-tong.md)
+* [四、GPIO子系统](ji-chu-pian/si-gpio-zi-xi-tong/README.md)
+  * [1-PINCTRL子系统](ji-chu-pian/si-gpio-zi-xi-tong/1pinctrl-zi-xi-tong.md)
+  * [2-GPIO子系统](ji-chu-pian/si-gpio-zi-xi-tong/2gpio-zi-xi-tong.md)
