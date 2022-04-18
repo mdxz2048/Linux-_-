@@ -12,7 +12,7 @@ PINCTRL子系统处理如下：
 
     
 
-## Top-level interface顶层接口
+## [Top-level interface顶层接口](https://www.kernel.org/doc/html/v4.13/driver-api/pinctl.html#top-level-interface)
 
 **PIN CTNTROLLER**定义：
 
@@ -112,7 +112,7 @@ const struct pinctrl_pin_desc foo_pins[] = {
 
  正如你所见，我枚举了从左上角的0到右下角的63的引脚。这个枚举是任意选择的，再实践中，你需要仔细考虑编号系统，以便它与驱动中的寄存器布局相匹配，否则代码将变得复杂。还必须考虑将偏移量与可能由引脚控制器处理的 GPIO 范围相匹配。
 
-
+对于有467个焊盘(而不是实际的引脚),我使用这种方式枚举。像这样，再芯片的周围进行定义，这似乎也是行业标准(这些焊盘是有对应名称的)。
 
 ```
   0 ..... 104
@@ -122,4 +122,73 @@ const struct pinctrl_pin_desc foo_pins[] = {
 358        224
  357 .... 225
 ```
+
+## [Pin groups](https://www.kernel.org/doc/html/v4.13/driver-api/pinctl.html#pin-groups)
+
+一些控制需要处理一组引脚，因此引脚控制器子系统(pin controller subsystem)有一个机制来枚举引脚组，并检索属于特定组的实际枚举引脚。
+
+例如，有一组SPI接口的引脚是 { 0, 8, 16, 24 }, 另一组I2C引脚是{ 24, 25 }.
+
+这两组一般在引脚控制器pinctrl_ops 中表现为:
+
+```c
+#include <linux/pinctrl/pinctrl.h>
+
+struct foo_group {
+        const char *name;
+        const unsigned int *pins;
+        const unsigned num_pins;
+};
+
+static const unsigned int spi0_pins[] = { 0, 8, 16, 24 };
+static const unsigned int i2c0_pins[] = { 24, 25 };
+
+static const struct foo_group foo_groups[] = {
+        {
+                .name = "spi0_grp",
+                .pins = spi0_pins,
+                .num_pins = ARRAY_SIZE(spi0_pins),
+        },
+        {
+                .name = "i2c0_grp",
+                .pins = i2c0_pins,
+                .num_pins = ARRAY_SIZE(i2c0_pins),
+        },
+};
+
+
+static int foo_get_groups_count(struct pinctrl_dev *pctldev)
+{
+        return ARRAY_SIZE(foo_groups);
+}
+
+static const char *foo_get_group_name(struct pinctrl_dev *pctldev,
+                                unsigned selector)
+{
+        return foo_groups[selector].name;
+}
+
+static int foo_get_group_pins(struct pinctrl_dev *pctldev, unsigned selector,
+                        const unsigned **pins,
+                        unsigned *num_pins)
+{
+        *pins = (unsigned *) foo_groups[selector].pins;
+        *num_pins = foo_groups[selector].num_pins;
+        return 0;
+}
+
+static struct pinctrl_ops foo_pctrl_ops = {
+        .get_groups_count = foo_get_groups_count,
+        .get_group_name = foo_get_group_name,
+        .get_group_pins = foo_get_group_pins,
+};
+
+
+static struct pinctrl_desc foo_desc = {
+...
+.pctlops = &foo_pctrl_ops,
+};
+```
+
+
 
