@@ -190,5 +190,9 @@ static struct pinctrl_desc foo_desc = {
 };
 ```
 
+引脚控制子系统(pin control subsystem)通过调用`.get_groups_count()`来确定合法引脚的总数，并通过其他函数来检索组的名字和引脚。实际的组的数据结构数据保持取决于驱动层，这只是一个简单的示例-实际上你可能需要在结构体中加入更多成员，例如每组关联的特定寄存器的范围等。
 
+## [Pin configuration](https://www.kernel.org/doc/html/v4.13/driver-api/pinctl.html#pin-configuration)
+
+引脚可以被软件以各种而样的方式配置，更多的与其被用作输入或者输出时的电子特性有关。例如，你可能会配置引脚是高阻态/三态，来让引脚断开连接。
 
