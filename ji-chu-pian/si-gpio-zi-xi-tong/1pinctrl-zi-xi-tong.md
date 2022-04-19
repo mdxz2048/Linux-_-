@@ -196,3 +196,198 @@ static struct pinctrl_desc foo_desc = {
 
 引脚可以被软件以各种而样的方式配置，更多的与其被用作输入或者输出时的电子特性有关。例如，你可能会配置引脚是高阻态/三态，来让引脚断开连接。
 
+可以通过 进入`映射表the mapping table`来增加配置来对`Pin configuration`进行编程。可以参考下面*Board/machine configuration*部分。
+
+配置参数的格式和含义(`PLATFORM_X_PULL_UP` )完全由pin控制器驱动来定义。
+
+引脚配置器驱动实现回调，用于引脚控制器操作中更改引脚配置。如下所示：
+
+```c
+#include <linux/pinctrl/pinctrl.h>
+#include <linux/pinctrl/pinconf.h>
+#include "platform_x_pindefs.h"
+
+static int foo_pin_config_get(struct pinctrl_dev *pctldev,
+                unsigned offset,
+                unsigned long *config)
+{
+        struct my_conftype conf;
+
+        ... Find setting for pin @ offset ...
+
+        *config = (unsigned long) conf;
+}
+
+static int foo_pin_config_set(struct pinctrl_dev *pctldev,
+                unsigned offset,
+                unsigned long config)
+{
+        struct my_conftype *conf = (struct my_conftype *) config;
+
+        switch (conf) {
+                case PLATFORM_X_PULL_UP:
+                ...
+                }
+        }
+}
+
+static int foo_pin_config_group_get (struct pinctrl_dev *pctldev,
+                unsigned selector,
+                unsigned long *config)
+{
+        ...
+}
+
+static int foo_pin_config_group_set (struct pinctrl_dev *pctldev,
+                unsigned selector,
+                unsigned long config)
+{
+        ...
+}
+
+static struct pinconf_ops foo_pconf_ops = {
+        .pin_config_get = foo_pin_config_get,
+        .pin_config_set = foo_pin_config_set,
+        .pin_config_group_get = foo_pin_config_group_get,
+        .pin_config_group_set = foo_pin_config_group_set,
+};
+
+/* Pin config operations are handled by some pin controller */
+static struct pinctrl_desc foo_desc = {
+        ...
+        .confops = &foo_pconf_ops,
+};
+```
+
+由于某些控制器拥有特殊的逻辑来处理整组引脚，因此它们可以拥有特殊的整组引脚控制功能。对于不想处理的组，或者只是在进行组级别的处理然后迭代配置到所有引脚，则允许`pin_config_group_set()`返回错误代码`-EAGAIN`，在这种情况下，每组单独的Pin也将由单独的pin_config_set()调用处理。
+
+
+
+## [Interaction with the GPIO subsystem配合GPIO子系统](https://www.kernel.org/doc/html/v4.13/driver-api/pinctl.html#interaction-with-the-gpio-subsystem)
+
+GPIO驱动程序可能希望在同样注册为引脚控制器引脚的同一组物理引脚上执行各种类型的操作。
+
+首先，这两个子系统可以用作完全正交的子系统，详细信息参考“pin control requests from drivers”和“drivers needing both pin control and GPIOs”部分。但在某些情况下，引脚和GPIO之间需要跨子系统映射。
+
+由于引脚控制器子系统具有印尼叫控制器本地的引脚空间，因此我们需要一个映射，以便引脚控制子系统可以确定哪个引脚控制器处理某个GPIO引脚的控制。由于单个引脚控制器可以多路复用多个GPIO引脚范围(通常是具有一组引脚的SoC，但在内部有几个GPIO硅块，每个芯片都模块化为一个结构`gpio_chip`)，因此可以将任意数量的GPIO范围添加到引脚控制器实例，如下所示:
+
+```c
+struct gpio_chip chip_a;
+struct gpio_chip chip_b;
+
+static struct pinctrl_gpio_range gpio_range_a = {
+        .name = "chip a",
+        .id = 0,
+        .base = 32,
+        .pin_base = 32,
+        .npins = 16,
+        .gc = &chip_a;
+};
+
+static struct pinctrl_gpio_range gpio_range_b = {
+        .name = "chip b",
+        .id = 0,
+        .base = 48,
+        .pin_base = 64,
+        .npins = 8,
+        .gc = &chip_b;
+};
+
+{
+        struct pinctrl_dev *pctl;
+        ...
+        pinctrl_add_gpio_range(pctl, &gpio_range_a);
+        pinctrl_add_gpio_range(pctl, &gpio_range_b);
+}
+```
+
+因此，这个复杂系统具有1个引脚控制器可以处理两个不同的GPIO芯片。“chip a”有16个引脚，“chip b”有8个引脚。“chip a”和“chip b”具有不同的`.pin_base`，这意味着GPIO范围的起始引脚号。
+
+“chip a”的GPIO范围从GPIO基地址32开始，实际引脚范围也从32开始。然后，“chip b”对于GPIO范围和引脚范围有着不同的其实偏移量。“chip b”从GPIO编号48开始，引脚范围从64开始。
+
+我们可以使用`pin_base`将gpio number转化为实际的引脚号。它们被映射在全局的GPIO引脚空间。
+
+**chip a:**
+
+- GPIO range : [32 .. 47]
+- pin range : [32 .. 47]
+
+**chip b:**
+
+- GPIO range : [48 .. 55]
+- pin range : [64 .. 71]
+
+
+
+上面的示例假设GPIO和引脚之间的映射是线性的。如果映射是稀疏或者随即的，则可以在如下范围内编码任意引脚号数组。
+
+```c
+static const unsigned range_pins[] = { 14, 1, 22, 17, 10, 8, 6, 2 };
+
+static struct pinctrl_gpio_range gpio_range = {
+        .name = "chip",
+        .id = 0,
+        .base = 32,
+        .pins = &range_pins,
+        .npins = ARRAY_SIZE(range_pins),
+        .gc = &chip;
+};
+```
+
+在这种情况下`pin_base` 属性将被忽略。如果引脚组的名字已知，则可以使用`pinctrl_get_group_pins()`初始化上述结构体和`npins`元素。例如对于引脚组“foo”：
+
+```c
+pinctrl_get_group_pins(pctl, "foo", &gpio_range.pins,
+                       &gpio_range.npins);
+```
+
+当调用引脚控制子系统(pin control subsystem)的GPIO特定功能时，这些范围将被用于通过检查查引脚并将其与所有控制器上的引脚范围进行匹配来查找相应的引脚控制器。当找到处理匹配范围的引脚控制器时，将在该特定引脚控制器上调用特定于GPIO的功能。
+
+对于处理引脚偏置、引脚多路复用等的所用功能，引脚控制子系统将从从传入的GPIO编号中查找相应的引脚号，并使用range内检索引脚号。之后，引脚控制子系统将其传递给引脚控制器驱动，驱动程序将在其处理的编号范围内获得引脚号。此外，它还传递了范围的ID值，以便引脚控制器知道它应该处理哪个range。
+
+不推荐从pinctrl 驱动中调用`pinctrl_add_gpio_range`。请从参考文档*Documentation/devicetree/bindings/gpio/gpio.txt*了解如何绑定`Pinctrl`和`gpio驱动`。
+
+## PINMUX interfaces引脚复用接口
+
+调用的时候使用前缀`pinmux_*`。任何其他调用都不应该使用该前缀。
+
+
+
+## What is pinmuxing?
+
+PINMUX，也叫padmux、ballmux、alternate functions(备用功能)或mission modes(任务模式)，时芯片供应商生产某种电气封装的一种方式，多用于相互排斥(矛盾)的功能，实际用哪个功能取决于应用。在这种情况下，我们所说的”应用”是指一种将封装焊接或连接到电子系统的方法，即使是框架也可以在运行时更改功能。
+
+以下是从下面看到的PGA（引脚栅格阵列）芯片的示例：
+
+```c
+     A   B   C   D   E   F   G   H
+   +---+
+8  | o | o   o   o   o   o   o   o
+   |   |
+7  | o | o   o   o   o   o   o   o
+   |   |
+6  | o | o   o   o   o   o   o   o
+   +---+---+
+5  | o | o | o   o   o   o   o   o
+   +---+---+               +---+
+4    o   o   o   o   o   o | o | o
+                           |   |
+3    o   o   o   o   o   o | o | o
+                           |   |
+2    o   o   o   o   o   o | o | o
+   +-------+-------+-------+---+---+
+1  | o   o | o   o | o   o | o | o |
+   +-------+-------+-------+---+---+
+```
+
+这不是俄罗斯方块，要想到的是国际象棋。并非所有的PGA/BGA封装都是棋盘式的，大封装根据不同的设计模式在某些排列方式上有“孔”，但我们用这个做一个简单的例子。在看到的因教宗，一些将被VCC、GND占用，以便为芯片供电，并且相当多的引脚被外部存储器接口等大型端口占用。其余引脚通常需要进行引脚多路复用。
+
+上边示例8x8 PGA封装将其物理引脚分配引脚号为0~63.它将使用 `pinctrl_register_pins()`命名引脚 { A1, A2, A3 ... H6, H7, H8 }和一个舒适的数据集合。
+
+在这个8x8 PGA封装中{ A8, A7, A6, A5 }可以被用作SPI端口(4个引脚CLK, RXD, TXD, FRM)。在这种情况下,引脚B5可以被用作GPIO引脚。然而，在其他的设置中，{ A5, B5 }可以被用作I2C引脚(只占用两个引脚SCL, SDA)。不必说，我们不能同时使用I2C端口和SPI端口。然而，在封装内部，执行SPI逻辑的部分可以通过引脚{ G4, G3, G2, G1 }路由出去。
+
+在 { A1, B1, C1, D1, E1, F1, G1, H1 }的这一排，我们有一些特殊的东西，它是一个外部MMC总线，我们可以有2、4或8位宽，将分别占用2、4或8个引脚，因此要采用{ A1, B1 }、{ A1, B1, C1, D1 }或者所有有引脚。如果我们使用8位，我们当然不能在{ G4, G3, G2, G1 }引脚上使用SPI端口。
+
+通过这种方式，芯片内部存在的硅块可以在不同的引脚范围内进行多路复用。经常，同一代SoC会包含多个I2C、SPI、SDIO/MMC，硅快可以通过pinmux设置将它们路由到不同的引脚。
+
+由于GPIO引脚总是短缺，因此，如果某些其他I/O端口当前未使用，则通常能够使用几乎任何引脚作为GPIO引脚。
