@@ -45,19 +45,19 @@ insmod hello.ko
 	__SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
 	=> #define SYSCALL_DEFINE3(name, ...) SYSCALL_DEFINEx(3, _##name, __VA_ARGS__)
 [/Linux-4.9.88/kernel/module.c]
-	=>SYSCALL_DEFINE3(finit_module, int, fd, const char __user *, uargs, int, flags);
-		=>kernel_read_file_from_fd(fd, &hdr, &size, INT_MAX,READING_MODULE);
-			=>load_module(&info, uargs, flags);
-				=>static int load_module(struct load_info *info, const char __user *uargs,int flags)
-					=>module_sig_check(info, flags);
-					=>elf_header_check(info);
-					=>layout_and_allocate(info, flags);//这里会将内存的二进制代码格式化到module结构体并返回；
-					=>setup_modinfo(mod, info);
-					=>simplify_symbols(mod, info);
-					=>do_init_module(mod);
-						=>static noinline int do_init_module(struct module *mod)
-							=>do_one_initcall(mod->init);
-								=>fn();//这个就是实际的初始化调用的地方
+	=>SYSCALL_DEFINE3(init_module, void __user *, umod,unsigned long, len, const char __user *, uargs)
+		=>copy_module_from_user(umod, len, &info);
+		=>load_module(&info, uargs, flags);
+			=>static int load_module(struct load_info *info, const char __user *uargs,int flags)
+				=>module_sig_check(info, flags);
+				=>elf_header_check(info);
+				=>layout_and_allocate(info, flags);//这里会将内存的二进制代码格式化到module结构体并返回；
+				=>setup_modinfo(mod, info);
+				=>simplify_symbols(mod, info);
+				=>do_init_module(mod);
+					=>static noinline int do_init_module(struct module *mod)
+						=>do_one_initcall(mod->init);
+							=>fn();//这个就是实际的初始化调用的地方
 ```
 
 
@@ -207,7 +207,15 @@ insmod hello.ko
    		CALL(sys_delete_module)
    ```
 
-9. 接下来，我们在[[Linux-4.9.88/include/linux/syscalls.h]](https://elixir.bootlin.com/linux/v4.9.88/source/include/linux/syscalls.h)中，可以看到这里应用了
+9. 接下来，我们在[[Linux-4.9.88/include/linux/syscalls.h]](https://elixir.bootlin.com/linux/v4.9.88/source/include/linux/syscalls.h)中，可以看到有对sys_init_module的定义，sys_init_module的功能是分配内核存储空间（kernel memory）给相关的模块；
+
+   ```c
+   asmlinkage long sys_init_module(void __user *umod, unsigned long len,const char __user *uargs);
+   ```
+
+   
+
+10. 
 
 10. 其他
 
