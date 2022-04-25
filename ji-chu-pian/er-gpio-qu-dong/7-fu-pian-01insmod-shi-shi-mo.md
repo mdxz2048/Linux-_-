@@ -215,9 +215,382 @@ insmod hello.ko
 
    
 
-10. 
+10. `sys_init_module`系统调用在[kernel/module.c]中，这里主要工作如下：
 
-10. 其他
+    - 从用户空间拷贝模块镜像到内核空间：`copy_module_from_user（）`
+    - 加载模块:`load_module（）`
+
+    ```c
+    SYSCALL_DEFINE3(init_module, void __user *, umod,
+    		unsigned long, len, const char __user *, uargs)
+    {
+    	int err;
+    	struct load_info info = { };
+    	/*这里不会初始化模块*/
+    	err = may_init_module();
+    	if (err)
+    		return err;
+    
+    	pr_debug("init_module: umod=%p, len=%lu, uargs=%p\n",
+    	       umod, len, uargs);
+    
+    	err = copy_module_from_user(umod, len, &info);
+    	if (err)
+    		return err;
+    
+    	return load_module(&info, uargs, 0);
+    }
+    ```
+
+    
+
+11. `load_module()`函数同样位于[kernel/module.c]中，这里的任务是:
+
+    - 分配空间给模块
+    - 检查ELF文件镜像
+    - 解析镜像到mod结构体，检查符号表、变量；
+    - 调用`do_init_module()`初始化模组；
+
+    ```
+    /* Allocate and load the module: note that size of section 0 is always
+       zero, and we rely on this for optional sections. */
+    static int load_module(struct load_info *info, const char __user *uargs,
+    		       int flags)
+    {
+    	struct module *mod;
+    	long err;
+    	char *after_dashes;
+    	/*模组签名检查，需要内核中配置CONFIG_MODULE_SIG，我们这里没有配置，因此跳过*/
+    	err = module_sig_check(info, flags);
+    	if (err)
+    		goto free_copy;
+    	/*ELF镜像的头校验*/
+    	err = elf_header_check(info);
+    	if (err)
+    		goto free_copy;
+    	
+    	/*为模块的各个section分配空间.这里会将内存的二进制代码格式化到module结构体并返回；*/
+    	mod = .layout_and_allocate(info, flags);
+    	if (IS_ERR(mod)) {
+    		err = PTR_ERR(mod);
+    		goto free_copy;
+    	}
+    
+    	/*查是否有同名模块已加载，如果没有则将mod加入到链表中*/
+    	err = add_unformed_module(mod);
+    	if (err)
+    		goto free_module;
+    
+    #ifdef CONFIG_MODULE_SIG
+    	mod->sig_ok = info->sig_ok;
+    	if (!mod->sig_ok) {
+    		pr_notice_once("%s: module verification failed: signature "
+    			       "and/or required key missing - tainting "
+    			       "kernel\n", mod->name);
+    		add_taint_module(mod, TAINT_UNSIGNED_MODULE, LOCKDEP_STILL_OK);
+    	}
+    #endif
+    	
+    	/* 这里是将mod变量为各个CPU存放一份。模块的per-cpu section是ELF文件中一个特殊的section，属于data区，模块加载时，会根据系统中CPU个数，将这个 section中的数据复制相应的份数，存放在CORE section区域。这个主要在SMP系统中，不同CPU可以访问模块per-cpu section中的数据而无需使用CPU间的互斥机制。 */
+    	err = percpu_modalloc(mod, info);
+    	if (err)
+    		goto unlink_mod;
+    
+    	/* 初始化卸载模块相关的成员变量 */
+    	err = module_unload_init(mod);
+    	if (err)
+    		goto unlink_mod;
+    	
+    	init_param_lock(mod);
+    
+    	/* Now we've got everything in the final locations, we can
+    	 * find optional sections. */
+    	err = find_module_sections(mod, info);
+    	if (err)
+    		goto free_unload;
+    
+    	err = check_module_license_and_versions(mod);
+    	if (err)
+    		goto free_unload;
+    
+    	/* Set up MODINFO_ATTR fields */
+    	setup_modinfo(mod, info);
+    
+    	/* Fix up syms, so that st_value is a pointer to location. */
+    	err = simplify_symbols(mod, info);
+    	if (err < 0)
+    		goto free_modinfo;
+    
+    	err = apply_relocations(mod, info);
+    	if (err < 0)
+    		goto free_modinfo;
+    
+    	err = post_relocation(mod, info);
+    	if (err < 0)
+    		goto free_modinfo;
+    
+    	flush_module_icache(mod);
+    
+    	/* Now copy in args */
+    	mod->args = strndup_user(uargs, ~0UL >> 1);
+    	if (IS_ERR(mod->args)) {
+    		err = PTR_ERR(mod->args);
+    		goto free_arch_cleanup;
+    	}
+    
+    	dynamic_debug_setup(info->debug, info->num_debug);
+    
+    	/* Ftrace init must be called in the MODULE_STATE_UNFORMED state */
+    	ftrace_module_init(mod);
+    
+    	/* Finally it's fully formed, ready to start executing. */
+    	err = complete_formation(mod, info);
+    	if (err)
+    		goto ddebug_cleanup;
+    
+    	err = prepare_coming_module(mod);
+    	if (err)
+    		goto bug_cleanup;
+    
+    	/* Module is ready to execute: parsing args may do that. */
+    	after_dashes = parse_args(mod->name, mod->args, mod->kp, mod->num_kp,
+    				  -32768, 32767, mod,
+    				  unknown_module_param_cb);
+    	if (IS_ERR(after_dashes)) {
+    		err = PTR_ERR(after_dashes);
+    		goto coming_cleanup;
+    	} else if (after_dashes) {
+    		pr_warn("%s: parameters '%s' after `--' ignored\n",
+    		       mod->name, after_dashes);
+    	}
+    
+    	/* Link in to syfs. */
+    	err = mod_sysfs_setup(mod, info, mod->kp, mod->num_kp);
+    	if (err < 0)
+    		goto coming_cleanup;
+    
+    	if (is_livepatch_module(mod)) {
+    		err = copy_module_elf(mod, info);
+    		if (err < 0)
+    			goto sysfs_cleanup;
+    	}
+    
+    	/* Get rid of temporary copy. */
+    	free_copy(info);
+    
+    	/* Done! */
+    	trace_module_load(mod);
+    	/*初始化module*/
+    	return do_init_module(mod);
+    
+     sysfs_cleanup:
+    	mod_sysfs_teardown(mod);
+     coming_cleanup:
+    	blocking_notifier_call_chain(&module_notify_list,
+    				     MODULE_STATE_GOING, mod);
+    	klp_module_going(mod);
+     bug_cleanup:
+    	/* module_bug_cleanup needs module_mutex protection */
+    	mutex_lock(&module_mutex);
+    	module_bug_cleanup(mod);
+    	mutex_unlock(&module_mutex);
+    
+    	/* we can't deallocate the module until we clear memory protection */
+    	module_disable_ro(mod);
+    	module_disable_nx(mod);
+    
+     ddebug_cleanup:
+    	dynamic_debug_remove(info->debug);
+    	synchronize_sched();
+    	kfree(mod->args);
+     free_arch_cleanup:
+    	module_arch_cleanup(mod);
+     free_modinfo:
+    	free_modinfo(mod);
+     free_unload:
+    	module_unload_free(mod);
+     unlink_mod:
+    	mutex_lock(&module_mutex);
+    	/* Unlink carefully: kallsyms could be walking list. */
+    	list_del_rcu(&mod->list);
+    	mod_tree_remove(mod);
+    	wake_up_all(&module_wq);
+    	/* Wait for RCU-sched synchronizing before releasing mod->list. */
+    	synchronize_sched();
+    	mutex_unlock(&module_mutex);
+     free_module:
+    	/*
+    	 * Ftrace needs to clean up what it initialized.
+    	 * This does nothing if ftrace_module_init() wasn't called,
+    	 * but it must be called outside of module_mutex.
+    	 */
+    	ftrace_release_mod(mod);
+    	/* Free lock-classes; relies on the preceding sync_rcu() */
+    	lockdep_free_key_range(mod->core_layout.base, mod->core_layout.size);
+    
+    	module_deallocate(mod, info);
+     free_copy:
+    	free_copy(info);
+    	return err;
+    }
+    ```
+
+    
+
+12. do_init_module()函数的定义在`[kernel/module.c]`中，这里的工作主要是：
+
+    - `do_one_initcall(mod->init)`调用模块的初始化函数，进行初始化；
+
+    ```c
+    /*
+     * This is where the real work happens.
+     *
+     * Keep it uninlined to provide a reliable breakpoint target, e.g. for the gdb
+     * helper command 'lx-symbols'.
+     */
+    static noinline int do_init_module(struct module *mod)
+    {
+    	int ret = 0;
+    	struct mod_initfree *freeinit;
+    
+    	freeinit = kmalloc(sizeof(*freeinit), GFP_KERNEL);
+    	if (!freeinit) {
+    		ret = -ENOMEM;
+    		goto fail;
+    	}
+    	freeinit->module_init = mod->init_layout.base;
+    
+    	/*
+    	 * We want to find out whether @mod uses async during init.  Clear
+    	 * PF_USED_ASYNC.  async_schedule*() will set it.
+    	 */
+    	current->flags &= ~PF_USED_ASYNC;
+    
+    	do_mod_ctors(mod);
+    	/* Start the module */
+    	if (mod->init != NULL)
+    		ret = do_one_initcall(mod->init);
+    	if (ret < 0) {
+    		goto fail_free_freeinit;
+    	}
+    	if (ret > 0) {
+    		pr_warn("%s: '%s'->init suspiciously returned %d, it should "
+    			"follow 0/-E convention\n"
+    			"%s: loading module anyway...\n",
+    			__func__, mod->name, ret, __func__);
+    		dump_stack();
+    	}
+    
+    	/* Now it's a first class citizen! */
+    	mod->state = MODULE_STATE_LIVE;
+    	blocking_notifier_call_chain(&module_notify_list,
+    				     MODULE_STATE_LIVE, mod);
+    
+    	/*
+    	 * We need to finish all async code before the module init sequence
+    	 * is done.  This has potential to deadlock.  For example, a newly
+    	 * detected block device can trigger request_module() of the
+    	 * default iosched from async probing task.  Once userland helper
+    	 * reaches here, async_synchronize_full() will wait on the async
+    	 * task waiting on request_module() and deadlock.
+    	 *
+    	 * This deadlock is avoided by perfomring async_synchronize_full()
+    	 * iff module init queued any async jobs.  This isn't a full
+    	 * solution as it will deadlock the same if module loading from
+    	 * async jobs nests more than once; however, due to the various
+    	 * constraints, this hack seems to be the best option for now.
+    	 * Please refer to the following thread for details.
+    	 *
+    	 * http://thread.gmane.org/gmane.linux.kernel/1420814
+    	 */
+    	if (!mod->async_probe_requested && (current->flags & PF_USED_ASYNC))
+    		async_synchronize_full();
+    
+    	mutex_lock(&module_mutex);
+    	/* Drop initial reference. */
+    	module_put(mod);
+    	trim_init_extable(mod);
+    #ifdef CONFIG_KALLSYMS
+    	/* Switch to core kallsyms now init is done: kallsyms may be walking! */
+    	rcu_assign_pointer(mod->kallsyms, &mod->core_kallsyms);
+    #endif
+    	module_enable_ro(mod, true);
+    	mod_tree_remove_init(mod);
+    	disable_ro_nx(&mod->init_layout);
+    	module_arch_freeing_init(mod);
+    	mod->init_layout.base = NULL;
+    	mod->init_layout.size = 0;
+    	mod->init_layout.ro_size = 0;
+    	mod->init_layout.ro_after_init_size = 0;
+    	mod->init_layout.text_size = 0;
+    	/*
+    	 * We want to free module_init, but be aware that kallsyms may be
+    	 * walking this with preempt disabled.  In all the failure paths, we
+    	 * call synchronize_sched(), but we don't want to slow down the success
+    	 * path, so use actual RCU here.
+    	 */
+    	call_rcu_sched(&freeinit->rcu, do_free_init);
+    	mutex_unlock(&module_mutex);
+    	wake_up_all(&module_wq);
+    
+    	return 0;
+    
+    fail_free_freeinit:
+    	kfree(freeinit);
+    fail:
+    	/* Try to protect us from buggy refcounters. */
+    	mod->state = MODULE_STATE_GOING;
+    	synchronize_sched();
+    	module_put(mod);
+    	blocking_notifier_call_chain(&module_notify_list,
+    				     MODULE_STATE_GOING, mod);
+    	klp_module_going(mod);
+    	ftrace_release_mod(mod);
+    	free_module(mod);
+    	wake_up_all(&module_wq);
+    	return ret;
+    }
+    ```
+
+    
+
+13. do_one_initcall()函数在[Linux-4.9.88/init/main.c]中，这个函数比较简单，主要就是调用传入参数`initcall_t fn`，即真正实现mod中的初始化函数。
+
+    ```c
+    int __init_or_module do_one_initcall(initcall_t fn)
+    {
+    	int count = preempt_count();
+    	int ret;
+    	char msgbuf[64];
+    
+    	if (initcall_blacklisted(fn))
+    		return -EPERM;
+    
+    	if (initcall_debug)
+    		ret = do_one_initcall_debug(fn);
+    	else
+    		ret = fn();
+    
+    	msgbuf[0] = 0;
+    
+    	if (preempt_count() != count) {
+    		sprintf(msgbuf, "preemption imbalance ");
+    		preempt_count_set(count);
+    	}
+    	if (irqs_disabled()) {
+    		strlcat(msgbuf, "disabled interrupts ", sizeof(msgbuf));
+    		local_irq_enable();
+    	}
+    	WARN(msgbuf[0], "initcall %pF returned with %s\n", fn, msgbuf);
+    
+    	add_latent_entropy();
+    	return ret;
+    }
+    ```
+
+    
+
+14. 其他
 
 
 
